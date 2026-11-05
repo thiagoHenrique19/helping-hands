@@ -1,5 +1,7 @@
 package com.helpinghands.infrastructure.web.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.helpinghands.core.domain.CampaignCategory;
 import com.helpinghands.core.domain.CampaignStatus;
 import com.helpinghands.core.pagination.PageResult;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "Campaigns", description = "Fundraising campaigns run by organizations")
 @RequestMapping("/api")
 public class CampaignController {
 
@@ -30,17 +33,20 @@ public class CampaignController {
         this.campaignService = campaignService;
     }
 
+    @Operation(summary = "Create a campaign for an organization")
     @PostMapping("/organizations/{organizationId}/campaigns")
     @ResponseStatus(HttpStatus.CREATED)
     public CampaignResponse create(@PathVariable Long organizationId, @Valid @RequestBody CampaignRequest request) {
         return campaignService.create(organizationId, request);
     }
 
+    @Operation(summary = "Get a campaign")
     @GetMapping("/campaigns/{id}")
     public CampaignResponse findById(@PathVariable Long id) {
         return campaignService.findById(id);
     }
 
+    @Operation(summary = "Search campaigns by organization, status, category and title (paginated, sortable)")
     @GetMapping("/campaigns")
     public PageResult<CampaignResponse> search(@RequestParam(required = false) Long organizationId,
                                                @RequestParam(required = false) CampaignStatus status,
@@ -54,11 +60,13 @@ public class CampaignController {
         return campaignService.search(criteria, PageParams.toQuery(page, size, sortBy, direction));
     }
 
+    @Operation(summary = "Update an active campaign")
     @PutMapping("/campaigns/{id}")
     public CampaignResponse update(@PathVariable Long id, @Valid @RequestBody CampaignRequest request) {
         return campaignService.update(id, request);
     }
 
+    @Operation(summary = "Cancel an active campaign")
     @PostMapping("/campaigns/{id}/cancel")
     public CampaignResponse cancel(@PathVariable Long id) {
         return campaignService.cancel(id);
