@@ -14,20 +14,16 @@ import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.web.servlet.MockMvc;
 
-@AutoConfigureMockMvc
 class OrganizationManagementIntegrationTest extends AbstractPostgresIntegrationTest {
 
-    @Autowired private MockMvc mockMvc;
     @Autowired private JdbcTemplate jdbcTemplate;
     @Autowired private ExpireCampaignsUseCase expireCampaignsUseCase;
 
     private int createOrganization(String name, String email) throws Exception {
-        String body = mockMvc.perform(post("/api/organizations").contentType(MediaType.APPLICATION_JSON)
+        String body = mockMvc.perform(post("/api/organizations").with(admin()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"" + name + "\",\"email\":\"" + email + "\",\"phone\":\"1199\"}"))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -35,7 +31,7 @@ class OrganizationManagementIntegrationTest extends AbstractPostgresIntegrationT
     }
 
     private int createCampaign(int organizationId, String json) throws Exception {
-        String body = mockMvc.perform(post("/api/organizations/" + organizationId + "/campaigns")
+        String body = mockMvc.perform(post("/api/organizations/" + organizationId + "/campaigns").with(admin())
                         .contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -47,7 +43,7 @@ class OrganizationManagementIntegrationTest extends AbstractPostgresIntegrationT
         String email = UUID.randomUUID() + "@dup.org";
         createOrganization("First", email);
 
-        mockMvc.perform(post("/api/organizations").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/organizations").with(admin()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Second\",\"email\":\"" + email.toUpperCase() + "\"}"))
                 .andExpect(status().isConflict());
     }
@@ -56,16 +52,16 @@ class OrganizationManagementIntegrationTest extends AbstractPostgresIntegrationT
     void shouldUpdateAndVerifyOrganization() throws Exception {
         int id = createOrganization("Before", UUID.randomUUID() + "@org.org");
 
-        mockMvc.perform(put("/api/organizations/" + id).contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(put("/api/organizations/" + id).with(admin()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"After\",\"email\":\"" + UUID.randomUUID() + "@org.org\",\"website\":\"https://after.org\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("After"))
                 .andExpect(jsonPath("$.website").value("https://after.org"));
 
-        mockMvc.perform(post("/api/organizations/" + id + "/verify"))
+        mockMvc.perform(post("/api/organizations/" + id + "/verify").with(admin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.verified").value(true));
-        mockMvc.perform(post("/api/organizations/" + id + "/verify")).andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(post("/api/organizations/" + id + "/verify").with(admin())).andExpect(status().isUnprocessableEntity());
     }
 
     @Test
@@ -93,20 +89,20 @@ class OrganizationManagementIntegrationTest extends AbstractPostgresIntegrationT
                         .content("{\"donorName\":\"Ann\",\"donorEmail\":\"ann@mail.com\",\"amount\":600,\"paymentMethod\":\"PIX\"}"))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(put("/api/campaigns/" + campaignId).contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(put("/api/campaigns/" + campaignId).with(admin()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Clean river\",\"goalAmount\":500}"))
                 .andExpect(status().isUnprocessableEntity());
 
-        mockMvc.perform(put("/api/campaigns/" + campaignId).contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(put("/api/campaigns/" + campaignId).with(admin()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Clean the river\",\"goalAmount\":2000,\"category\":\"ENVIRONMENT\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Clean the river"))
                 .andExpect(jsonPath("$.goalAmount").value(2000));
 
-        mockMvc.perform(post("/api/campaigns/" + campaignId + "/cancel"))
+        mockMvc.perform(post("/api/campaigns/" + campaignId + "/cancel").with(admin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELLED"));
-        mockMvc.perform(put("/api/campaigns/" + campaignId).contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(put("/api/campaigns/" + campaignId).with(admin()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"x\",\"goalAmount\":5000}"))
                 .andExpect(status().isUnprocessableEntity());
     }
