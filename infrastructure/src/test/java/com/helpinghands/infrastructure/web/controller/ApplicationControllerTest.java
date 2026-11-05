@@ -2,6 +2,7 @@ package com.helpinghands.infrastructure.web.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -50,6 +51,17 @@ class ApplicationControllerTest {
         mockMvc.perform(post("/api/opportunities/1/applications").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
+    @Test
+    void shouldPassTheIdempotencyKeyHeaderToTheUseCase() throws Exception {
+        when(applicationService.apply(eq(1L), any(), eq("retry-7"))).thenReturn(response(ApplicationStatus.PENDING));
+
+        mockMvc.perform(post("/api/opportunities/1/applications").header("Idempotency-Key", "retry-7")
+                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
+                .andExpect(status().isCreated());
+
+        verify(applicationService).apply(eq(1L), any(), eq("retry-7"));
     }
 
     @Test
