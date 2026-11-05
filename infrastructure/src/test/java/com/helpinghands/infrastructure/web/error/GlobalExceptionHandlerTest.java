@@ -17,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -50,6 +52,19 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.detail").value("Campaign not found with id 7"))
                 .andExpect(jsonPath("$.instance").value("/fail/not-found"))
                 .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void shouldMapLockTimeoutToConflict() throws Exception {
+        mockMvc.perform(get("/fail/lock-timeout"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("The resource was modified concurrently, please retry"));
+    }
+
+    @Test
+    void shouldMapDeadlockToConflict() throws Exception {
+        mockMvc.perform(get("/fail/deadlock"))
+                .andExpect(status().isConflict());
     }
 
     @Test
@@ -148,6 +163,16 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/fail/locking")
         void locking() {
             throw new OptimisticLockingFailureException("stale");
+        }
+
+        @GetMapping("/fail/lock-timeout")
+        void lockTimeout() {
+            throw new CannotAcquireLockException("lock wait timeout");
+        }
+
+        @GetMapping("/fail/deadlock")
+        void deadlock() {
+            throw new DeadlockLoserDataAccessException("deadlock", null);
         }
 
         @GetMapping("/fail/invalid")
