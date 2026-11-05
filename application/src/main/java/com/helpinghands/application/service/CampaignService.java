@@ -47,7 +47,7 @@ public class CampaignService implements ManageCampaignsUseCase {
     @Override
     @Transactional
     public CampaignResponse update(Long id, CampaignRequest request) {
-        var campaign = load(id);
+        var campaign = loadForUpdate(id);
         campaign.update(request.title(), request.description(), request.goalAmount(), request.endsAt(),
                 request.category());
         return campaignMapper.toResponse(campaignRepository.save(campaign));
@@ -56,7 +56,7 @@ public class CampaignService implements ManageCampaignsUseCase {
     @Override
     @Transactional
     public CampaignResponse cancel(Long id) {
-        var campaign = load(id);
+        var campaign = loadForUpdate(id);
         campaign.cancel();
         return campaignMapper.toResponse(campaignRepository.save(campaign));
     }
@@ -69,5 +69,10 @@ public class CampaignService implements ManageCampaignsUseCase {
 
     private Campaign load(Long id) {
         return campaignRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Campaign", id));
+    }
+
+    private Campaign loadForUpdate(Long id) {
+        return campaignRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Campaign", id));
     }
 }

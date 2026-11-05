@@ -1,6 +1,7 @@
 package com.helpinghands.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,6 +17,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -34,6 +36,7 @@ class CampaignExpirationServiceTest {
         Instant now = endsAt.plus(1, ChronoUnit.HOURS);
         Campaign overdue = Campaign.create(organization, "Late", "d", BigDecimal.TEN, endsAt, CampaignCategory.FOOD);
         when(campaignRepository.findActiveWithDeadlineUpTo(now)).thenReturn(List.of(overdue));
+        when(campaignRepository.findByIdForUpdate(any())).thenReturn(Optional.of(overdue));
         var service = new CampaignExpirationService(campaignRepository, Clock.fixed(now, ZoneOffset.UTC));
 
         int expired = service.expireOverdueCampaigns();
@@ -41,6 +44,22 @@ class CampaignExpirationServiceTest {
         assertThat(expired).isEqualTo(1);
         assertThat(overdue.getStatus()).isEqualTo(CampaignStatus.EXPIRED);
         verify(campaignRepository).save(overdue);
+    }
+
+    @Test
+    void shouldSkipACampaignThatCompletedWhileTheJobWasRunning() {
+        Instant endsAt = Instant.now().plus(1, ChronoUnit.DAYS);
+        Instant now = endsAt.plus(1, ChronoUnit.HOURS);
+        Campaign staleCopy = Campaign.create(organization, "Late", "d", BigDecimal.TEN, endsAt, CampaignCategory.FOOD);
+        Campaign current = Campaign.create(organization, "Late", "d", BigDecimal.TEN, endsAt, CampaignCategory.FOOD);
+        current.receiveDonation(BigDecimal.TEN);
+        when(campaignRepository.findActiveWithDeadlineUpTo(now)).thenReturn(List.of(staleCopy));
+        when(campaignRepository.findByIdForUpdate(any())).thenReturn(Optional.of(current));
+        var service = new CampaignExpirationService(campaignRepository, Clock.fixed(now, ZoneOffset.UTC));
+
+        assertThat(service.expireOverdueCampaigns()).isZero();
+        assertThat(current.getStatus()).isEqualTo(CampaignStatus.COMPLETED);
+        verify(campaignRepository, never()).save(any());
     }
 
     @Test

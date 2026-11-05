@@ -99,6 +99,7 @@ class ApplicationServiceTest {
     void shouldApproveAndPublishEvents() {
         var opportunity = opportunity(1);
         var application = VolunteerApplication.apply(opportunity, "Vera", "vera@mail.com", null, null);
+        when(opportunityRepository.findByIdForUpdate(any())).thenReturn(Optional.of(opportunity));
         when(applicationRepository.findById(5L)).thenReturn(Optional.of(application));
         when(applicationRepository.save(application)).thenReturn(application);
 
@@ -112,7 +113,9 @@ class ApplicationServiceTest {
 
     @Test
     void shouldNotPublishFilledEventWhileSlotsRemain() {
-        var application = VolunteerApplication.apply(opportunity(2), "Vera", "vera@mail.com", null, null);
+        var opportunity = opportunity(2);
+        var application = VolunteerApplication.apply(opportunity, "Vera", "vera@mail.com", null, null);
+        when(opportunityRepository.findByIdForUpdate(any())).thenReturn(Optional.of(opportunity));
         when(applicationRepository.findById(5L)).thenReturn(Optional.of(application));
         when(applicationRepository.save(application)).thenReturn(application);
 
@@ -127,10 +130,26 @@ class ApplicationServiceTest {
         var opportunity = opportunity(1);
         VolunteerApplication.apply(opportunity, "A", "a@mail.com", null, null).approve();
         var second = VolunteerApplication.apply(opportunity, "B", "b@mail.com", null, null);
+        when(opportunityRepository.findByIdForUpdate(any())).thenReturn(Optional.of(opportunity));
         when(applicationRepository.findById(6L)).thenReturn(Optional.of(second));
 
         assertThatThrownBy(() -> service.approve(6L)).isInstanceOf(BusinessRuleException.class);
         verify(eventPublisher, never()).publish(any());
+    }
+
+    @Test
+    void shouldLockTheOpportunityBeforeCheckingSlots() {
+        var opportunity = opportunity(1);
+        var application = VolunteerApplication.apply(opportunity, "Vera", "vera@mail.com", null, null);
+        when(opportunityRepository.findByIdForUpdate(any())).thenReturn(Optional.of(opportunity));
+        when(applicationRepository.findById(5L)).thenReturn(Optional.of(application));
+        when(applicationRepository.save(application)).thenReturn(application);
+
+        service.approve(5L);
+
+        var order = org.mockito.Mockito.inOrder(opportunityRepository);
+        order.verify(opportunityRepository).findByIdForUpdate(any());
+        order.verify(opportunityRepository).save(opportunity);
     }
 
     @Test
@@ -147,6 +166,7 @@ class ApplicationServiceTest {
         var opportunity = opportunity(1);
         var application = VolunteerApplication.apply(opportunity, "Vera", "vera@mail.com", null, null);
         application.approve();
+        when(opportunityRepository.findByIdForUpdate(any())).thenReturn(Optional.of(opportunity));
         when(applicationRepository.findById(5L)).thenReturn(Optional.of(application));
         when(applicationRepository.save(application)).thenReturn(application);
 

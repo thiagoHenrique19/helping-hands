@@ -35,6 +35,11 @@ class CampaignPersistenceAdapter implements CampaignRepository {
     }
 
     @Override
+    public Optional<Campaign> findByIdForUpdate(Long id) {
+        return jpaRepository.findByIdForUpdate(id);
+    }
+
+    @Override
     public PageResult<Campaign> search(CampaignSearchCriteria criteria, PageQuery pageQuery) {
         var pageable = PageTranslator.toPageable(pageQuery, SORTABLE_FIELDS);
         return PageTranslator.toPageResult(jpaRepository.findAll(CampaignSpecifications.from(criteria), pageable));

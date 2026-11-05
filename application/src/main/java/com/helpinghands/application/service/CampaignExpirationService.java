@@ -24,9 +24,10 @@ public class CampaignExpirationService implements ExpireCampaignsUseCase {
     public int expireOverdueCampaigns() {
         Instant now = clock.instant();
         int expired = 0;
-        for (Campaign campaign : campaignRepository.findActiveWithDeadlineUpTo(now)) {
-            if (campaign.expireIfOverdue(now)) {
-                campaignRepository.save(campaign);
+        for (Campaign candidate : campaignRepository.findActiveWithDeadlineUpTo(now)) {
+            var locked = campaignRepository.findByIdForUpdate(candidate.getId());
+            if (locked.isPresent() && locked.get().expireIfOverdue(now)) {
+                campaignRepository.save(locked.get());
                 expired++;
             }
         }

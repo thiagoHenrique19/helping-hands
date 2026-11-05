@@ -5,11 +5,16 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/helpinghands}
     username: ${DB_USER:helpinghands}
     password: ${DB_PASSWORD:helpinghands}
+    hikari:
+      connection-init-sql: SET lock_timeout = ${app.database.lock-timeout-ms}
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
 app:
+  database:
+    # how long a writer waits for a row lock before the request fails with 409
+    lock-timeout-ms: ${DB_LOCK_TIMEOUT_MS:5000}
   security:
     jwt:
       # Local/dev default only. hmg and prod profiles require JWT_SECRET.

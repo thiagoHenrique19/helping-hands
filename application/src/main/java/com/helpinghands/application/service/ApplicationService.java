@@ -5,6 +5,7 @@ import com.helpinghands.core.domain.ApplicationStatus;
 import com.helpinghands.core.domain.OpportunityStatus;
 import com.helpinghands.core.domain.Organization;
 import com.helpinghands.core.domain.VolunteerApplication;
+import com.helpinghands.core.domain.VolunteerOpportunity;
 import com.helpinghands.core.event.OpportunityFilled;
 import com.helpinghands.core.event.VolunteerApplicationApproved;
 import com.helpinghands.core.exception.ConflictException;
@@ -65,7 +66,7 @@ public class ApplicationService implements ManageApplicationsUseCase {
     @Transactional
     public ApplicationResponse approve(Long applicationId) {
         var application = load(applicationId);
-        var opportunity = application.getOpportunity();
+        var opportunity = lockOpportunityOf(application);
         application.approve();
         opportunityRepository.save(opportunity);
         var saved = applicationRepository.save(application);
@@ -89,13 +90,20 @@ public class ApplicationService implements ManageApplicationsUseCase {
     @Transactional
     public ApplicationResponse withdraw(Long applicationId) {
         var application = load(applicationId);
+        var opportunity = lockOpportunityOf(application);
         application.withdraw();
-        opportunityRepository.save(application.getOpportunity());
+        opportunityRepository.save(opportunity);
         return mapper.toResponse(applicationRepository.save(application));
     }
 
     private VolunteerApplication load(Long id) {
         return applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Volunteer application", id));
+    }
+
+    private VolunteerOpportunity lockOpportunityOf(VolunteerApplication application) {
+        Long opportunityId = application.getOpportunity().getId();
+        return opportunityRepository.findByIdForUpdate(opportunityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Volunteer opportunity", opportunityId));
     }
 }
