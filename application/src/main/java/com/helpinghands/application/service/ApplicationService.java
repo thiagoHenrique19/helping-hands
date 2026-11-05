@@ -1,5 +1,6 @@
 package com.helpinghands.application.service;
 
+import com.helpinghands.application.idempotency.IdempotentExecution;
 import com.helpinghands.application.mapper.VolunteerMapper;
 import com.helpinghands.core.domain.ApplicationStatus;
 import com.helpinghands.core.domain.OpportunityStatus;
@@ -28,20 +29,28 @@ public class ApplicationService implements ManageApplicationsUseCase {
     private final VolunteerApplicationRepository applicationRepository;
     private final DomainEventPublisher eventPublisher;
     private final VolunteerMapper mapper;
+    private final IdempotentExecution idempotentExecution;
 
     public ApplicationService(VolunteerOpportunityRepository opportunityRepository,
                               VolunteerApplicationRepository applicationRepository,
                               DomainEventPublisher eventPublisher,
-                              VolunteerMapper mapper) {
+                              VolunteerMapper mapper,
+                              IdempotentExecution idempotentExecution) {
         this.opportunityRepository = opportunityRepository;
         this.applicationRepository = applicationRepository;
         this.eventPublisher = eventPublisher;
         this.mapper = mapper;
+        this.idempotentExecution = idempotentExecution;
     }
 
     @Override
     @Transactional
-    public ApplicationResponse apply(Long opportunityId, ApplicationRequest request) {
+    public ApplicationResponse apply(Long opportunityId, ApplicationRequest request, String idempotencyKey) {
+        return idempotentExecution.run("application:" + opportunityId, idempotencyKey, request,
+                ApplicationResponse.class, () -> register(opportunityId, request));
+    }
+
+    private ApplicationResponse register(Long opportunityId, ApplicationRequest request) {
         var opportunity = opportunityRepository.findById(opportunityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Volunteer opportunity", opportunityId));
         String email = Organization.normalizeEmail(request.volunteerEmail());

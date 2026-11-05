@@ -42,7 +42,7 @@ class ConcurrentApprovalsIntegrationTest extends AbstractPostgresIntegrationTest
         List<Long> ids = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             ids.add(applications.apply(opportunityId,
-                    new ApplicationRequest("Vol " + i, "vol" + i + "@mail.com", null, null)).id());
+                    new ApplicationRequest("Vol " + i, "vol" + i + "@mail.com", null, null), null).id());
         }
         return ids;
     }

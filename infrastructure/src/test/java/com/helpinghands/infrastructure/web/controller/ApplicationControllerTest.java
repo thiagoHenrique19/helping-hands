@@ -2,6 +2,7 @@ package com.helpinghands.infrastructure.web.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -45,11 +46,22 @@ class ApplicationControllerTest {
 
     @Test
     void shouldApply() throws Exception {
-        when(applicationService.apply(eq(1L), any())).thenReturn(response(ApplicationStatus.PENDING));
+        when(applicationService.apply(eq(1L), any(), any())).thenReturn(response(ApplicationStatus.PENDING));
 
         mockMvc.perform(post("/api/opportunities/1/applications").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
+    @Test
+    void shouldPassTheIdempotencyKeyHeaderToTheUseCase() throws Exception {
+        when(applicationService.apply(eq(1L), any(), eq("retry-7"))).thenReturn(response(ApplicationStatus.PENDING));
+
+        mockMvc.perform(post("/api/opportunities/1/applications").header("Idempotency-Key", "retry-7")
+                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
+                .andExpect(status().isCreated());
+
+        verify(applicationService).apply(eq(1L), any(), eq("retry-7"));
     }
 
     @Test
@@ -61,7 +73,7 @@ class ApplicationControllerTest {
 
     @Test
     void shouldReturnConflictForDuplicateApplication() throws Exception {
-        when(applicationService.apply(eq(1L), any())).thenThrow(new ConflictException("already applied"));
+        when(applicationService.apply(eq(1L), any(), any())).thenThrow(new ConflictException("already applied"));
 
         mockMvc.perform(post("/api/opportunities/1/applications").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isConflict());

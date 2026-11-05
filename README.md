@@ -79,6 +79,17 @@ I chose the row lock over `UPDATE ... SET raised_amount = raised_amount + ?` bec
 
 The tests for this (`ConcurrentDonationsIntegrationTest`, `ConcurrentApprovalsIntegrationTest`) run real threads against PostgreSQL.
 
+## Idempotent writes
+
+`POST /api/campaigns/{id}/donations` and `POST /api/opportunities/{id}/applications` accept an optional `Idempotency-Key` header, so a client that times out can retry without donating twice.
+
+- Same key and same body: the first response is returned again and nothing new is created. Numbers are compared as numbers, so `10` and `10.00` count as the same body.
+- Same key and a different body: 422 with the problem type `idempotency-key-reuse`.
+- Keys are scoped per campaign / opportunity and kept for 24 hours (`app.idempotency.retention`).
+- Failed requests are not remembered. The key is claimed in the same transaction as the donation, so when the donation is rejected the claim rolls back and the client can retry with the same key.
+
+Two parallel requests with one key are settled by the unique constraint on `(scope, key)`: `INSERT ... ON CONFLICT DO NOTHING` makes the second one wait for the first to commit, then it reads the stored response.
+
 ## Authentication
 1. `POST /api/auth/register` with `{"email","password","role"}` where role is `VOLUNTEER` or `ORGANIZATION` (admins only come from the bootstrap variables).
 2. `POST /api/auth/login` returns `{"accessToken","tokenType":"Bearer","expiresIn"}`.

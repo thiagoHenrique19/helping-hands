@@ -1,5 +1,6 @@
 package com.helpinghands.application.service;
 
+import com.helpinghands.application.idempotency.IdempotentExecution;
 import com.helpinghands.application.mapper.DonationMapper;
 import com.helpinghands.core.domain.CampaignStatus;
 import com.helpinghands.core.domain.Donation;
@@ -23,22 +24,30 @@ public class DonationService implements MakeDonationUseCase {
     private final ReceiptCodeGenerator receiptCodeGenerator;
     private final DonationMapper donationMapper;
     private final DomainEventPublisher eventPublisher;
+    private final IdempotentExecution idempotentExecution;
 
     public DonationService(CampaignRepository campaignRepository,
                            DonationRepository donationRepository,
                            ReceiptCodeGenerator receiptCodeGenerator,
                            DonationMapper donationMapper,
-                           DomainEventPublisher eventPublisher) {
+                           DomainEventPublisher eventPublisher,
+                           IdempotentExecution idempotentExecution) {
         this.campaignRepository = campaignRepository;
         this.donationRepository = donationRepository;
         this.receiptCodeGenerator = receiptCodeGenerator;
         this.donationMapper = donationMapper;
         this.eventPublisher = eventPublisher;
+        this.idempotentExecution = idempotentExecution;
     }
 
     @Override
     @Transactional
-    public DonationResponse donate(Long campaignId, DonationRequest request) {
+    public DonationResponse donate(Long campaignId, DonationRequest request, String idempotencyKey) {
+        return idempotentExecution.run("donation:" + campaignId, idempotencyKey, request, DonationResponse.class,
+                () -> register(campaignId, request));
+    }
+
+    private DonationResponse register(Long campaignId, DonationRequest request) {
         var campaign = campaignRepository.findByIdForUpdate(campaignId)
                 .orElseThrow(() -> new ResourceNotFoundException("Campaign", campaignId));
         var donation = Donation.make(campaign, request.donorName(), request.donorEmail(), request.amount(),

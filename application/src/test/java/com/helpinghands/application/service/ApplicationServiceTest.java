@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.helpinghands.application.idempotency.IdempotentExecution;
 import com.helpinghands.application.mapper.VolunteerMapper;
 import com.helpinghands.core.domain.ApplicationStatus;
 import com.helpinghands.core.domain.OpportunityStatus;
@@ -22,7 +23,10 @@ import com.helpinghands.core.pagination.PageQuery;
 import com.helpinghands.core.pagination.PageResult;
 import com.helpinghands.core.port.in.dto.ApplicationRequest;
 import com.helpinghands.core.port.in.dto.ApplicationResponse;
+import com.helpinghands.core.idempotency.StoredIdempotency;
 import com.helpinghands.core.port.out.DomainEventPublisher;
+import com.helpinghands.core.port.out.IdempotencyPayloads;
+import com.helpinghands.core.port.out.IdempotencyStore;
 import com.helpinghands.core.port.out.VolunteerApplicationRepository;
 import com.helpinghands.core.port.out.VolunteerOpportunityRepository;
 import java.time.Instant;
@@ -41,6 +45,8 @@ class ApplicationServiceTest {
     @Mock private VolunteerOpportunityRepository opportunityRepository;
     @Mock private VolunteerApplicationRepository applicationRepository;
     @Mock private DomainEventPublisher eventPublisher;
+    @Mock private IdempotencyStore idempotencyStore;
+    @Mock private IdempotencyPayloads idempotencyPayloads;
 
     private ApplicationService service;
     private final ApplicationRequest request = new ApplicationRequest("Vera", "Vera@mail.com", "1199", "I care");
@@ -48,7 +54,7 @@ class ApplicationServiceTest {
     @BeforeEach
     void setUp() {
         service = new ApplicationService(opportunityRepository, applicationRepository, eventPublisher,
-                new VolunteerMapper());
+                new VolunteerMapper(), new IdempotentExecution(idempotencyStore, idempotencyPayloads));
     }
 
     private VolunteerOpportunity opportunity(int slots) {
@@ -63,10 +69,25 @@ class ApplicationServiceTest {
         when(applicationRepository.existsByOpportunityIdAndVolunteerEmail(1L, "vera@mail.com")).thenReturn(false);
         when(applicationRepository.save(any(VolunteerApplication.class))).thenAnswer(i -> i.getArgument(0));
 
-        ApplicationResponse response = service.apply(1L, request);
+        ApplicationResponse response = service.apply(1L, request, null);
 
         assertThat(response.status()).isEqualTo(ApplicationStatus.PENDING);
         assertThat(response.volunteerEmail()).isEqualTo("vera@mail.com");
+    }
+
+    @Test
+    void shouldReplayTheFirstResponseForARepeatedKeyWithoutApplyingTwice() {
+        var original = new ApplicationResponse(3L, 1L, "Vera", "vera@mail.com", null, null,
+                ApplicationStatus.PENDING, Instant.now());
+        when(idempotencyPayloads.fingerprint(request)).thenReturn("hash");
+        when(idempotencyStore.reserve("application:1", "key-1", "hash")).thenReturn(false);
+        when(idempotencyStore.find("application:1", "key-1")).thenReturn(Optional.of(new StoredIdempotency("hash", "{}")));
+        when(idempotencyPayloads.deserialize("{}", ApplicationResponse.class)).thenReturn(original);
+
+        assertThat(service.apply(1L, request, "key-1")).isSameAs(original);
+
+        verify(applicationRepository, never()).save(any());
+        verify(opportunityRepository, never()).findById(any());
     }
 
     @Test
@@ -74,7 +95,7 @@ class ApplicationServiceTest {
         when(opportunityRepository.findById(1L)).thenReturn(Optional.of(opportunity(2)));
         when(applicationRepository.existsByOpportunityIdAndVolunteerEmail(1L, "vera@mail.com")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.apply(1L, request)).isInstanceOf(ConflictException.class);
+        assertThatThrownBy(() -> service.apply(1L, request, null)).isInstanceOf(ConflictException.class);
         verify(applicationRepository, never()).save(any());
     }
 
@@ -85,14 +106,14 @@ class ApplicationServiceTest {
         when(opportunityRepository.findById(1L)).thenReturn(Optional.of(closed));
         when(applicationRepository.existsByOpportunityIdAndVolunteerEmail(1L, "vera@mail.com")).thenReturn(false);
 
-        assertThatThrownBy(() -> service.apply(1L, request)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> service.apply(1L, request, null)).isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
     void shouldFailApplyingToUnknownOpportunity() {
         when(opportunityRepository.findById(9L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.apply(9L, request)).isInstanceOf(ResourceNotFoundException.class);
+        assertThatThrownBy(() -> service.apply(9L, request, null)).isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test

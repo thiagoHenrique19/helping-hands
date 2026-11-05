@@ -1,6 +1,7 @@
 package com.helpinghands.infrastructure.web.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.helpinghands.core.domain.ApplicationStatus;
 import com.helpinghands.core.pagination.PageResult;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -34,8 +36,11 @@ public class ApplicationController {
     @Operation(summary = "Apply to an opportunity")
     @PostMapping("/opportunities/{opportunityId}/applications")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApplicationResponse apply(@PathVariable Long opportunityId, @Valid @RequestBody ApplicationRequest request) {
-        return applicationService.apply(opportunityId, request);
+    public ApplicationResponse apply(@PathVariable Long opportunityId,
+                                     @Parameter(description = "Optional. Repeating it with the same body returns the first response.")
+                                     @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+                                     @Valid @RequestBody ApplicationRequest request) {
+        return applicationService.apply(opportunityId, request, idempotencyKey);
     }
 
     @Operation(summary = "List the applications of an opportunity")

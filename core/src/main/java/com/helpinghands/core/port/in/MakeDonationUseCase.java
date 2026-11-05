@@ -5,5 +5,6 @@ import com.helpinghands.core.port.in.dto.DonationResponse;
 
 public interface MakeDonationUseCase {
 
-    DonationResponse donate(Long campaignId, DonationRequest request);
+    /** @param idempotencyKey optional; repeating a key with the same request returns the first response */
+    DonationResponse donate(Long campaignId, DonationRequest request, String idempotencyKey);
 }

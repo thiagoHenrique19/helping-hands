@@ -3,6 +3,7 @@ package com.helpinghands.infrastructure.web.error;
 import com.helpinghands.core.exception.AuthenticationFailedException;
 import com.helpinghands.core.exception.BusinessRuleException;
 import com.helpinghands.core.exception.ConflictException;
+import com.helpinghands.core.exception.IdempotencyKeyReusedException;
 import com.helpinghands.core.exception.InvalidRequestException;
 import com.helpinghands.core.exception.ResourceNotFoundException;
 import java.util.List;
@@ -38,6 +39,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleNotFound(ResourceNotFoundException exception) {
         return problem(HttpStatus.NOT_FOUND, "not-found", "Resource not found", exception.getMessage());
+    }
+
+    @ExceptionHandler(IdempotencyKeyReusedException.class)
+    public ProblemDetail handleIdempotencyKeyReuse(IdempotencyKeyReusedException exception) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "idempotency-key-reuse", "Idempotency key reused",
+                exception.getMessage());
     }
 
     @ExceptionHandler(BusinessRuleException.class)
