@@ -13,5 +13,8 @@ public interface VolunteerOpportunityRepository {
 
     Optional<VolunteerOpportunity> findById(Long id);
 
+    /** Locks the row and re-reads it, so slot counters are never stale even if it was loaded earlier. */
+    Optional<VolunteerOpportunity> findByIdForUpdate(Long id);
+
     PageResult<VolunteerOpportunity> search(OpportunitySearchCriteria criteria, Instant now, PageQuery pageQuery);
 }

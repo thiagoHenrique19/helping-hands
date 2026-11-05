@@ -5,6 +5,8 @@ import com.helpinghands.core.pagination.PageQuery;
 import com.helpinghands.core.pagination.PageResult;
 import com.helpinghands.core.port.in.dto.OpportunitySearchCriteria;
 import com.helpinghands.core.port.out.VolunteerOpportunityRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
@@ -18,9 +20,12 @@ class VolunteerOpportunityPersistenceAdapter implements VolunteerOpportunityRepo
             Set.of("id", "title", "startsAt", "endsAt", "slots", "createdAt", "status");
 
     private final JpaVolunteerOpportunityRepository jpaRepository;
+    private final EntityManager entityManager;
 
-    VolunteerOpportunityPersistenceAdapter(JpaVolunteerOpportunityRepository jpaRepository) {
+    VolunteerOpportunityPersistenceAdapter(JpaVolunteerOpportunityRepository jpaRepository,
+                                           EntityManager entityManager) {
         this.jpaRepository = jpaRepository;
+        this.entityManager = entityManager;
     }
 
     @Override
@@ -31,6 +36,17 @@ class VolunteerOpportunityPersistenceAdapter implements VolunteerOpportunityRepo
     @Override
     public Optional<VolunteerOpportunity> findById(Long id) {
         return jpaRepository.findById(id);
+    }
+
+    // A locking JPQL query would hand back the already-managed instance with stale counters,
+    // so the entity is refreshed under the lock instead.
+    @Override
+    public Optional<VolunteerOpportunity> findByIdForUpdate(Long id) {
+        var opportunity = entityManager.find(VolunteerOpportunity.class, id);
+        if (opportunity != null) {
+            entityManager.refresh(opportunity, LockModeType.PESSIMISTIC_WRITE);
+        }
+        return Optional.ofNullable(opportunity);
     }
 
     @Override
