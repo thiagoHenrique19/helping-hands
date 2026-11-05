@@ -56,7 +56,7 @@ class DonationServiceTest {
 
     @Test
     void shouldRegisterDonationAndUpdateCampaign() {
-        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
+        when(campaignRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(campaign));
         when(receiptCodeGenerator.next()).thenReturn("DON-00000007");
         when(donationRepository.save(any(Donation.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -72,8 +72,19 @@ class DonationServiceTest {
     }
 
     @Test
+    void shouldLockCampaignRowInsteadOfReadingItPlainly() {
+        when(campaignRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(campaign));
+        when(receiptCodeGenerator.next()).thenReturn("DON-1");
+        when(donationRepository.save(any(Donation.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        donationService.donate(1L, request("Gus", "10"));
+
+        verify(campaignRepository, never()).findById(any());
+    }
+
+    @Test
     void shouldCompleteCampaignWhenGoalIsReached() {
-        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
+        when(campaignRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(campaign));
         when(receiptCodeGenerator.next()).thenReturn("DON-1");
         when(donationRepository.save(any(Donation.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -85,7 +96,7 @@ class DonationServiceTest {
 
     @Test
     void shouldNotPublishEventWhileCampaignIsStillActive() {
-        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
+        when(campaignRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(campaign));
         when(receiptCodeGenerator.next()).thenReturn("DON-1");
         when(donationRepository.save(any(Donation.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -96,7 +107,7 @@ class DonationServiceTest {
 
     @Test
     void shouldRejectDonationBelowMinimumAmount() {
-        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
+        when(campaignRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(campaign));
         when(receiptCodeGenerator.next()).thenReturn("DON-1");
 
         assertThatThrownBy(() -> donationService.donate(1L, request("Dan", "0.50")))
@@ -108,7 +119,7 @@ class DonationServiceTest {
 
     @Test
     void shouldFailWhenCampaignDoesNotExist() {
-        when(campaignRepository.findById(99L)).thenReturn(Optional.empty());
+        when(campaignRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> donationService.donate(99L, request("Carol", "10")))
                 .isInstanceOf(ResourceNotFoundException.class);

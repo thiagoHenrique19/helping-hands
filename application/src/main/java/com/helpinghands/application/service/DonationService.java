@@ -39,7 +39,7 @@ public class DonationService implements MakeDonationUseCase {
     @Override
     @Transactional
     public DonationResponse donate(Long campaignId, DonationRequest request) {
-        var campaign = campaignRepository.findById(campaignId)
+        var campaign = campaignRepository.findByIdForUpdate(campaignId)
                 .orElseThrow(() -> new ResourceNotFoundException("Campaign", campaignId));
         var donation = Donation.make(campaign, request.donorName(), request.donorEmail(), request.amount(),
                 request.anonymous(), request.message(), request.paymentMethod(), receiptCodeGenerator.next());
