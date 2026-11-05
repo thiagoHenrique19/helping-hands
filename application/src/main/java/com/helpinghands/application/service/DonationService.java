@@ -1,13 +1,17 @@
 package com.helpinghands.application.service;
 
+import com.helpinghands.application.mapper.DonationMapper;
+import com.helpinghands.core.domain.CampaignStatus;
+import com.helpinghands.core.domain.Donation;
+import com.helpinghands.core.event.CampaignCompleted;
+import com.helpinghands.core.exception.ResourceNotFoundException;
 import com.helpinghands.core.port.in.MakeDonationUseCase;
 import com.helpinghands.core.port.in.dto.DonationRequest;
 import com.helpinghands.core.port.in.dto.DonationResponse;
-import com.helpinghands.application.mapper.DonationMapper;
-import com.helpinghands.core.domain.Donation;
-import com.helpinghands.core.exception.ResourceNotFoundException;
 import com.helpinghands.core.port.out.CampaignRepository;
+import com.helpinghands.core.port.out.DomainEventPublisher;
 import com.helpinghands.core.port.out.DonationRepository;
+import com.helpinghands.core.port.out.ReceiptCodeGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,14 +20,20 @@ public class DonationService implements MakeDonationUseCase {
 
     private final CampaignRepository campaignRepository;
     private final DonationRepository donationRepository;
+    private final ReceiptCodeGenerator receiptCodeGenerator;
     private final DonationMapper donationMapper;
+    private final DomainEventPublisher eventPublisher;
 
     public DonationService(CampaignRepository campaignRepository,
                            DonationRepository donationRepository,
-                           DonationMapper donationMapper) {
+                           ReceiptCodeGenerator receiptCodeGenerator,
+                           DonationMapper donationMapper,
+                           DomainEventPublisher eventPublisher) {
         this.campaignRepository = campaignRepository;
         this.donationRepository = donationRepository;
+        this.receiptCodeGenerator = receiptCodeGenerator;
         this.donationMapper = donationMapper;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -31,8 +41,14 @@ public class DonationService implements MakeDonationUseCase {
     public DonationResponse donate(Long campaignId, DonationRequest request) {
         var campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(() -> new ResourceNotFoundException("Campaign", campaignId));
+        var donation = Donation.make(campaign, request.donorName(), request.donorEmail(), request.amount(),
+                request.anonymous(), request.message(), request.paymentMethod(), receiptCodeGenerator.next());
         campaign.receiveDonation(request.amount());
-        var donation = Donation.make(campaign, request.donorName(), request.donorEmail(), request.amount());
+        campaignRepository.save(campaign);
+        if (campaign.getStatus() == CampaignStatus.COMPLETED) {
+            eventPublisher.publish(new CampaignCompleted(campaign.getId(), campaign.getOrganization().getId(),
+                    campaign.getRaisedAmount()));
+        }
         return donationMapper.toResponse(donationRepository.save(donation));
     }
 }

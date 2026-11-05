@@ -13,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 
 @Entity
 public class Campaign {
@@ -37,24 +38,78 @@ public class Campaign {
     @Enumerated(EnumType.STRING)
     private CampaignStatus status = CampaignStatus.ACTIVE;
 
+    private Instant endsAt;
+
+    @Enumerated(EnumType.STRING)
+    private CampaignCategory category = CampaignCategory.OTHER;
+
+    private Instant createdAt = Instant.now();
+
     protected Campaign() {
     }
 
-    private Campaign(Organization organization, String title, String description, BigDecimal goalAmount) {
+    private Campaign(Organization organization, String title, String description, BigDecimal goalAmount,
+                     Instant endsAt, CampaignCategory category) {
         this.organization = organization;
         this.title = title;
         this.description = description;
         this.goalAmount = goalAmount;
+        this.endsAt = endsAt;
+        this.category = category == null ? CampaignCategory.OTHER : category;
     }
 
     public static Campaign create(Organization organization, String title, String description, BigDecimal goalAmount) {
+        return create(organization, title, description, goalAmount, null, CampaignCategory.OTHER);
+    }
+
+    public static Campaign create(Organization organization, String title, String description, BigDecimal goalAmount,
+                                  Instant endsAt, CampaignCategory category) {
+        validateGoal(goalAmount);
+        validateDeadline(endsAt);
+        return new Campaign(organization, title, description, goalAmount, endsAt, category);
+    }
+
+    public void update(String title, String description, BigDecimal goalAmount, Instant endsAt,
+                       CampaignCategory category) {
+        if (status != CampaignStatus.ACTIVE) {
+            throw new BusinessRuleException("Only active campaigns can be updated");
+        }
+        validateGoal(goalAmount);
+        if (goalAmount.compareTo(raisedAmount) <= 0) {
+            throw new BusinessRuleException("Goal amount must be greater than the amount already raised");
+        }
+        validateDeadline(endsAt);
+        this.title = title;
+        this.description = description;
+        this.goalAmount = goalAmount;
+        this.endsAt = endsAt;
+        this.category = category == null ? CampaignCategory.OTHER : category;
+    }
+
+    public boolean expireIfOverdue(Instant now) {
+        if (status == CampaignStatus.ACTIVE && endsAt != null && !endsAt.isAfter(now)) {
+            status = CampaignStatus.EXPIRED;
+            return true;
+        }
+        return false;
+    }
+
+    private static void validateGoal(BigDecimal goalAmount) {
         if (goalAmount == null || goalAmount.signum() <= 0) {
             throw new BusinessRuleException("Goal amount must be positive");
         }
-        return new Campaign(organization, title, description, goalAmount);
+    }
+
+    private static void validateDeadline(Instant endsAt) {
+        if (endsAt != null && !endsAt.isAfter(Instant.now())) {
+            throw new BusinessRuleException("Campaign deadline must be in the future");
+        }
     }
 
     public void receiveDonation(BigDecimal amount) {
+        if (status == CampaignStatus.EXPIRED || (endsAt != null && !endsAt.isAfter(Instant.now()))) {
+            throw new BusinessRuleException("Campaign has expired");
+        }
         if (status != CampaignStatus.ACTIVE) {
             throw new BusinessRuleException("Campaign is not active");
         }
@@ -68,8 +123,8 @@ public class Campaign {
     }
 
     public void cancel() {
-        if (status == CampaignStatus.COMPLETED) {
-            throw new BusinessRuleException("Completed campaign cannot be cancelled");
+        if (status != CampaignStatus.ACTIVE) {
+            throw new BusinessRuleException("Only active campaigns can be cancelled");
         }
         status = CampaignStatus.CANCELLED;
     }
@@ -106,5 +161,17 @@ public class Campaign {
 
     public CampaignStatus getStatus() {
         return status;
+    }
+
+    public Instant getEndsAt() {
+        return endsAt;
+    }
+
+    public CampaignCategory getCategory() {
+        return category;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 }

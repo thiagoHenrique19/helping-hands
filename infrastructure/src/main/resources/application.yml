@@ -9,3 +9,31 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+app:
+  security:
+    jwt:
+      # Local/dev default only. hmg and prod profiles require JWT_SECRET.
+      secret: ${JWT_SECRET:local-development-only-secret-change-me-0123456789}
+      ttl: 1h
+  admin:
+    email: ${APP_ADMIN_EMAIL:}
+    password: ${APP_ADMIN_PASSWORD:}
+logging:
+  pattern:
+    level: "%5p [%X{requestId:-}]"
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true
+info:
+  app:
+    name: helping-hands
+    description: Platform connecting NGOs, volunteers and donors

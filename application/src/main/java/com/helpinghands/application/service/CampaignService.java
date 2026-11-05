@@ -1,14 +1,16 @@
 package com.helpinghands.application.service;
 
+import com.helpinghands.application.mapper.CampaignMapper;
+import com.helpinghands.core.domain.Campaign;
+import com.helpinghands.core.exception.ResourceNotFoundException;
+import com.helpinghands.core.pagination.PageQuery;
+import com.helpinghands.core.pagination.PageResult;
 import com.helpinghands.core.port.in.ManageCampaignsUseCase;
 import com.helpinghands.core.port.in.dto.CampaignRequest;
 import com.helpinghands.core.port.in.dto.CampaignResponse;
-import com.helpinghands.application.mapper.CampaignMapper;
-import com.helpinghands.core.domain.CampaignStatus;
-import com.helpinghands.core.exception.ResourceNotFoundException;
+import com.helpinghands.core.port.in.dto.CampaignSearchCriteria;
 import com.helpinghands.core.port.out.CampaignRepository;
 import com.helpinghands.core.port.out.OrganizationRepository;
-import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,16 +41,33 @@ public class CampaignService implements ManageCampaignsUseCase {
     @Override
     @Transactional(readOnly = true)
     public CampaignResponse findById(Long id) {
-        return campaignRepository.findById(id)
-                .map(campaignMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Campaign", id));
+        return campaignMapper.toResponse(load(id));
+    }
+
+    @Override
+    @Transactional
+    public CampaignResponse update(Long id, CampaignRequest request) {
+        var campaign = load(id);
+        campaign.update(request.title(), request.description(), request.goalAmount(), request.endsAt(),
+                request.category());
+        return campaignMapper.toResponse(campaignRepository.save(campaign));
+    }
+
+    @Override
+    @Transactional
+    public CampaignResponse cancel(Long id) {
+        var campaign = load(id);
+        campaign.cancel();
+        return campaignMapper.toResponse(campaignRepository.save(campaign));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CampaignResponse> listActive() {
-        return campaignRepository.findByStatus(CampaignStatus.ACTIVE).stream()
-                .map(campaignMapper::toResponse)
-                .toList();
+    public PageResult<CampaignResponse> search(CampaignSearchCriteria criteria, PageQuery pageQuery) {
+        return campaignRepository.search(criteria, pageQuery).map(campaignMapper::toResponse);
+    }
+
+    private Campaign load(Long id) {
+        return campaignRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Campaign", id));
     }
 }
