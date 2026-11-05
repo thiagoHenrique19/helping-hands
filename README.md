@@ -64,6 +64,21 @@ Swagger UI: <http://localhost:8080/swagger-ui.html> · OpenAPI JSON: `/v3/api-do
 
 Optional: `helpinghands.campaigns.expiration-cron` changes the schedule of the campaign expiration job (default every 5 minutes).
 
+## Concurrency
+
+Donations and volunteer approvals both do "read a number, change it, write it back", which loses updates when two requests overlap. I tried it without any locking first: 50 parallel donations ended with a raised total of 129 instead of 1275.
+
+What I did instead:
+
+- Donating, editing and cancelling a campaign, and the expiration job, all load the campaign with `SELECT ... FOR UPDATE`. Writers queue on the row, so the total is exact and the campaign completes once.
+- Approving or withdrawing an application locks the opportunity row first. The entity is refreshed under the lock, because a plain locking query returns the already-loaded instance with old counters.
+- Both entities also have `@Version`. That is only a safety net for code paths that don't take the lock. I didn't use it as the main mechanism for approvals: with optimistic locking the losers fail with a version error, with the lock they get a normal "no slots available" business error.
+- Waiting for a lock is capped by `app.database.lock-timeout-ms` (5 s). When it runs out, or on a stale version or deadlock, the API answers 409.
+
+I chose the row lock over `UPDATE ... SET raised_amount = raised_amount + ?` because the rules (expired, goal reached, event published once) live in the domain object, and one lock keeps them in one place. The cost is that donations to one very popular campaign are serialized. That is fine at this size.
+
+The tests for this (`ConcurrentDonationsIntegrationTest`, `ConcurrentApprovalsIntegrationTest`) run real threads against PostgreSQL.
+
 ## Authentication
 1. `POST /api/auth/register` with `{"email","password","role"}` where role is `VOLUNTEER` or `ORGANIZATION` (admins only come from the bootstrap variables).
 2. `POST /api/auth/login` returns `{"accessToken","tokenType":"Bearer","expiresIn"}`.
