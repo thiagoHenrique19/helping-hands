@@ -20,6 +20,9 @@ import com.helpinghands.core.port.in.UpdateOrganizationUseCase;
 import com.helpinghands.core.port.in.VerifyOrganizationUseCase;
 import com.helpinghands.core.port.in.dto.OrganizationResponse;
 import java.util.List;
+import com.helpinghands.infrastructure.security.WebMvcSecurityTestConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -28,6 +31,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(OrganizationController.class)
+@Import(WebMvcSecurityTestConfig.class)
+@WithMockUser(roles = "ADMIN")
 class OrganizationControllerTest {
 
     private static final String BODY = """
@@ -46,7 +51,7 @@ class OrganizationControllerTest {
 
     @Test
     void shouldRegisterOrganization() throws Exception {
-        when(registerOrganization.register(any())).thenReturn(response(false));
+        when(registerOrganization.register(any(), any())).thenReturn(response(false));
 
         mockMvc.perform(post("/api/organizations").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isCreated())
@@ -55,7 +60,7 @@ class OrganizationControllerTest {
 
     @Test
     void shouldReturnConflictForDuplicateEmail() throws Exception {
-        when(registerOrganization.register(any())).thenThrow(new ConflictException("already exists"));
+        when(registerOrganization.register(any(), any())).thenThrow(new ConflictException("already exists"));
 
         mockMvc.perform(post("/api/organizations").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isConflict());

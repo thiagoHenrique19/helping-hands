@@ -23,6 +23,8 @@ import com.helpinghands.core.port.in.dto.TopDonorResponse;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import com.helpinghands.infrastructure.security.WebMvcSecurityTestConfig;
+import org.springframework.context.annotation.Import;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -31,6 +33,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(DonationController.class)
+@Import(WebMvcSecurityTestConfig.class)
 class DonationControllerTest {
 
     private static final String VALID_BODY = """
