@@ -45,7 +45,7 @@ class ApplicationControllerTest {
 
     @Test
     void shouldApply() throws Exception {
-        when(applicationService.apply(eq(1L), any())).thenReturn(response(ApplicationStatus.PENDING));
+        when(applicationService.apply(eq(1L), any(), any())).thenReturn(response(ApplicationStatus.PENDING));
 
         mockMvc.perform(post("/api/opportunities/1/applications").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isCreated())
@@ -61,7 +61,7 @@ class ApplicationControllerTest {
 
     @Test
     void shouldReturnConflictForDuplicateApplication() throws Exception {
-        when(applicationService.apply(eq(1L), any())).thenThrow(new ConflictException("already applied"));
+        when(applicationService.apply(eq(1L), any(), any())).thenThrow(new ConflictException("already applied"));
 
         mockMvc.perform(post("/api/opportunities/1/applications").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isConflict());

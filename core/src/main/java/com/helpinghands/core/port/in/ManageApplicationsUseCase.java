@@ -8,7 +8,8 @@ import com.helpinghands.core.port.in.dto.ApplicationResponse;
 
 public interface ManageApplicationsUseCase {
 
-    ApplicationResponse apply(Long opportunityId, ApplicationRequest request);
+    /** @param idempotencyKey optional; repeating a key with the same request returns the first response */
+    ApplicationResponse apply(Long opportunityId, ApplicationRequest request, String idempotencyKey);
 
     PageResult<ApplicationResponse> listByOpportunity(Long opportunityId, ApplicationStatus status,
                                                       PageQuery pageQuery);

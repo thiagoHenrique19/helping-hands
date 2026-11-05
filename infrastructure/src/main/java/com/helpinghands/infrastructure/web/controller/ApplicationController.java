@@ -35,7 +35,7 @@ public class ApplicationController {
     @PostMapping("/opportunities/{opportunityId}/applications")
     @ResponseStatus(HttpStatus.CREATED)
     public ApplicationResponse apply(@PathVariable Long opportunityId, @Valid @RequestBody ApplicationRequest request) {
-        return applicationService.apply(opportunityId, request);
+        return applicationService.apply(opportunityId, request, null);
     }
 
     @Operation(summary = "List the applications of an opportunity")
