@@ -5,6 +5,10 @@ spring:
     password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:10}
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
 logging:
   level:
     root: WARN
