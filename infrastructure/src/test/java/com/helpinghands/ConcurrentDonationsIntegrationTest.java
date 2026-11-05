@@ -81,4 +81,26 @@ class ConcurrentDonationsIntegrationTest extends AbstractPostgresIntegrationTest
         assertThat(events.of(CampaignCompleted.class)).filteredOn(e -> e.campaignId().equals(campaignId))
                 .hasSize(1);
     }
+
+    @Test
+    void shouldCreateOneDonationWhenTheSameRequestIsRetriedInParallel() throws Exception {
+        Long campaignId = newCampaign("1000");
+        var request = new DonationRequest("Retry", "retry@mail.com", new BigDecimal("40"), false, null,
+                PaymentMethod.PIX);
+        String key = UUID.randomUUID().toString();
+        List<Callable<Object>> tasks = new ArrayList<>();
+        for (int i = 0; i < 15; i++) {
+            tasks.add(() -> donations.donate(campaignId, request, key));
+        }
+
+        var outcomes = ConcurrentRunner.runAll(tasks);
+
+        assertThat(outcomes).allMatch(ConcurrentRunner.Outcome::succeeded);
+        assertThat(outcomes.stream().map(o -> ((com.helpinghands.core.port.in.dto.DonationResponse) o.value()).id())
+                .distinct()).hasSize(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM donation WHERE campaign_id = ?", Integer.class,
+                campaignId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT raised_amount FROM campaign WHERE id = ?", BigDecimal.class,
+                campaignId)).isEqualByComparingTo("40");
+    }
 }
