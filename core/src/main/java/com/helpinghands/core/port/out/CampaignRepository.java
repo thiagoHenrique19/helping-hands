@@ -14,6 +14,9 @@ public interface CampaignRepository {
 
     Optional<Campaign> findById(Long id);
 
+    /** Loads the campaign holding a write lock on its row until the surrounding transaction ends. */
+    Optional<Campaign> findByIdForUpdate(Long id);
+
     PageResult<Campaign> search(CampaignSearchCriteria criteria, PageQuery pageQuery);
 
     List<Campaign> findActiveWithDeadlineUpTo(Instant instant);
