@@ -2,6 +2,8 @@ package com.helpinghands.infrastructure.web.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -57,6 +59,30 @@ class DonationControllerTest {
                 .andExpect(jsonPath("$.donorName").value("Alice"))
                 .andExpect(jsonPath("$.receiptCode").value("DON-00000010"))
                 .andExpect(jsonPath("$.anonymous").value(true));
+    }
+
+    @Test
+    void shouldPassTheIdempotencyKeyHeaderToTheUseCase() throws Exception {
+        when(donationService.donate(eq(1L), any(), eq("retry-42"))).thenReturn(new DonationResponse(10L, 1L, "Alice",
+                new BigDecimal("40"), Instant.now(), "DON-00000010", true, "Good luck", PaymentMethod.PIX));
+
+        mockMvc.perform(post("/api/campaigns/1/donations").header("Idempotency-Key", "retry-42")
+                        .contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
+                .andExpect(status().isCreated());
+
+        verify(donationService).donate(eq(1L), any(), eq("retry-42"));
+    }
+
+    @Test
+    void shouldPassNoKeyWhenTheHeaderIsMissing() throws Exception {
+        when(donationService.donate(eq(1L), any(), any())).thenReturn(new DonationResponse(10L, 1L, "Alice",
+                new BigDecimal("40"), Instant.now(), "DON-00000010", true, "Good luck", PaymentMethod.PIX));
+
+        mockMvc.perform(post("/api/campaigns/1/donations")
+                        .contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
+                .andExpect(status().isCreated());
+
+        verify(donationService).donate(eq(1L), any(), isNull());
     }
 
     @Test
