@@ -89,6 +89,6 @@ class ApplicationControllerTest {
 
         mockMvc.perform(post("/api/applications/5/approve"))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.message").value("No slots available"));
+                .andExpect(jsonPath("$.detail").value("No slots available"));
     }
 }

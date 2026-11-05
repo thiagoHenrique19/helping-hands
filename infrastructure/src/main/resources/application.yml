@@ -9,6 +9,9 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+logging:
+  pattern:
+    level: "%5p [%X{requestId:-}]"
 management:
   endpoints:
     web:

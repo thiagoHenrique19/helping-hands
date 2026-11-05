@@ -1,5 +1,7 @@
 package com.helpinghands.infrastructure.web.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.helpinghands.core.port.in.ViewOrganizationAnalyticsUseCase;
 import com.helpinghands.core.port.in.ViewPlatformAnalyticsUseCase;
 import com.helpinghands.core.port.in.dto.analytics.CampaignProgressRank;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "Analytics", description = "Impact reports backed by native PostgreSQL queries")
 @RequestMapping("/api")
 public class AnalyticsController {
 
@@ -30,11 +33,13 @@ public class AnalyticsController {
         this.platformAnalytics = platformAnalytics;
     }
 
+    @Operation(summary = "Organization dashboard")
     @GetMapping("/organizations/{organizationId}/analytics/dashboard")
     public OrganizationDashboard dashboard(@PathVariable Long organizationId) {
         return organizationAnalytics.dashboard(organizationId);
     }
 
+    @Operation(summary = "Donations per month for a date range")
     @GetMapping("/organizations/{organizationId}/analytics/donations-by-month")
     public List<MonthlyDonations> donationsByMonth(
             @PathVariable Long organizationId,
@@ -43,32 +48,38 @@ public class AnalyticsController {
         return organizationAnalytics.donationsByMonth(organizationId, from, to);
     }
 
+    @Operation(summary = "Top campaigns of an organization by raised amount")
     @GetMapping("/organizations/{organizationId}/analytics/top-campaigns")
     public List<TopCampaign> topCampaigns(@PathVariable Long organizationId,
                                           @RequestParam(defaultValue = "10") int limit) {
         return organizationAnalytics.topCampaigns(organizationId, limit);
     }
 
+    @Operation(summary = "Campaign progress ranking of an organization")
     @GetMapping("/organizations/{organizationId}/analytics/campaign-progress")
     public List<CampaignProgressRank> campaignProgress(@PathVariable Long organizationId) {
         return organizationAnalytics.campaignProgressRanking(organizationId);
     }
 
+    @Operation(summary = "Donations by payment method for an organization")
     @GetMapping("/organizations/{organizationId}/analytics/payment-methods")
     public List<PaymentMethodBreakdown> paymentMethods(@PathVariable Long organizationId) {
         return organizationAnalytics.donationsByPaymentMethod(organizationId);
     }
 
+    @Operation(summary = "Platform-wide summary")
     @GetMapping("/analytics/summary")
     public PlatformSummary summary() {
         return platformAnalytics.summary();
     }
 
+    @Operation(summary = "Top campaigns of the platform")
     @GetMapping("/analytics/top-campaigns")
     public List<TopCampaign> platformTopCampaigns(@RequestParam(defaultValue = "10") int limit) {
         return platformAnalytics.topCampaigns(limit);
     }
 
+    @Operation(summary = "Donations by payment method on the platform")
     @GetMapping("/analytics/payment-methods")
     public List<PaymentMethodBreakdown> platformPaymentMethods() {
         return platformAnalytics.donationsByPaymentMethod();

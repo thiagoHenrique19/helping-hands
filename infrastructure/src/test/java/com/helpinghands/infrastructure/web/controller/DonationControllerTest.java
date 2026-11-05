@@ -83,7 +83,7 @@ class DonationControllerTest {
         mockMvc.perform(post("/api/campaigns/1/donations")
                         .contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.message").value("Campaign is not active"));
+                .andExpect(jsonPath("$.detail").value("Campaign is not active"));
     }
 
     @Test

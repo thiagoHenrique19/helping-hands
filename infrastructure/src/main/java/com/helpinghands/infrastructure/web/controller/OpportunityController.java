@@ -1,5 +1,7 @@
 package com.helpinghands.infrastructure.web.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.helpinghands.core.domain.OpportunityStatus;
 import com.helpinghands.core.pagination.PageResult;
 import com.helpinghands.core.pagination.SortDirection;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "Volunteer opportunities", description = "Volunteering opportunities published by organizations")
 @RequestMapping("/api")
 public class OpportunityController {
 
@@ -28,6 +31,7 @@ public class OpportunityController {
         this.opportunityService = opportunityService;
     }
 
+    @Operation(summary = "Publish a volunteer opportunity")
     @PostMapping("/organizations/{organizationId}/opportunities")
     @ResponseStatus(HttpStatus.CREATED)
     public OpportunityResponse create(@PathVariable Long organizationId,
@@ -35,6 +39,7 @@ public class OpportunityController {
         return opportunityService.create(organizationId, request);
     }
 
+    @Operation(summary = "Search opportunities by organization, status, remote and upcoming")
     @GetMapping("/opportunities")
     public PageResult<OpportunityResponse> search(@RequestParam(required = false) Long organizationId,
                                                   @RequestParam(required = false) OpportunityStatus status,
@@ -48,16 +53,19 @@ public class OpportunityController {
         return opportunityService.search(criteria, PageParams.toQuery(page, size, sortBy, direction));
     }
 
+    @Operation(summary = "Get an opportunity")
     @GetMapping("/opportunities/{id}")
     public OpportunityResponse findById(@PathVariable Long id) {
         return opportunityService.findById(id);
     }
 
+    @Operation(summary = "Close an opportunity")
     @PostMapping("/opportunities/{id}/close")
     public OpportunityResponse close(@PathVariable Long id) {
         return opportunityService.close(id);
     }
 
+    @Operation(summary = "Cancel an opportunity")
     @PostMapping("/opportunities/{id}/cancel")
     public OpportunityResponse cancel(@PathVariable Long id) {
         return opportunityService.cancel(id);

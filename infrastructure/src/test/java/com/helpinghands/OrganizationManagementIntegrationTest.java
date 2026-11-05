@@ -147,6 +147,6 @@ class OrganizationManagementIntegrationTest extends AbstractPostgresIntegrationT
         mockMvc.perform(post("/api/campaigns/" + campaignId + "/donations").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"donorName\":\"Late\",\"donorEmail\":\"late@mail.com\",\"amount\":10,\"paymentMethod\":\"PIX\"}"))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.message").value("Campaign has expired"));
+                .andExpect(jsonPath("$.detail").value("Campaign has expired"));
     }
 }

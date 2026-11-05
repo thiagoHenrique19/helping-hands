@@ -1,5 +1,7 @@
 package com.helpinghands.infrastructure.web.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.helpinghands.core.pagination.PageResult;
 import com.helpinghands.core.pagination.SortDirection;
 import com.helpinghands.core.port.in.ListOrganizationsUseCase;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "Organizations", description = "Register, update, verify and search NGOs")
 @RequestMapping("/api/organizations")
 public class OrganizationController {
 
@@ -39,12 +42,14 @@ public class OrganizationController {
         this.listOrganizations = listOrganizations;
     }
 
+    @Operation(summary = "Register an organization")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrganizationResponse register(@Valid @RequestBody OrganizationRequest request) {
         return registerOrganization.register(request);
     }
 
+    @Operation(summary = "List organizations (paginated, optional name search)")
     @GetMapping
     public PageResult<OrganizationResponse> list(@RequestParam(required = false) String name,
                                                  @RequestParam(defaultValue = "0") int page,
@@ -54,16 +59,19 @@ public class OrganizationController {
         return listOrganizations.search(name, PageParams.toQuery(page, size, sortBy, direction));
     }
 
+    @Operation(summary = "Get an organization")
     @GetMapping("/{id}")
     public OrganizationResponse findById(@PathVariable Long id) {
         return registerOrganization.findById(id);
     }
 
+    @Operation(summary = "Update an organization")
     @PutMapping("/{id}")
     public OrganizationResponse update(@PathVariable Long id, @Valid @RequestBody OrganizationRequest request) {
         return updateOrganization.update(id, request);
     }
 
+    @Operation(summary = "Mark an organization as verified")
     @PostMapping("/{id}/verify")
     public OrganizationResponse verify(@PathVariable Long id) {
         return verifyOrganization.verify(id);

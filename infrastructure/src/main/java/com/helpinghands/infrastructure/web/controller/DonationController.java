@@ -1,5 +1,7 @@
 package com.helpinghands.infrastructure.web.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.helpinghands.core.pagination.PageResult;
 import com.helpinghands.core.pagination.SortDirection;
 import com.helpinghands.core.port.in.ListDonationsUseCase;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "Donations", description = "Donations, public donation feed and top donors")
 @RequestMapping("/api/campaigns/{campaignId}")
 public class DonationController {
 
@@ -37,12 +40,14 @@ public class DonationController {
         this.viewTopDonors = viewTopDonors;
     }
 
+    @Operation(summary = "Donate to a campaign")
     @PostMapping("/donations")
     @ResponseStatus(HttpStatus.CREATED)
     public DonationResponse donate(@PathVariable Long campaignId, @Valid @RequestBody DonationRequest request) {
         return donationService.donate(campaignId, request);
     }
 
+    @Operation(summary = "List the public donations of a campaign (anonymous donors are masked)")
     @GetMapping("/donations")
     public PageResult<PublicDonationResponse> list(@PathVariable Long campaignId,
                                                    @RequestParam(defaultValue = "0") int page,
@@ -52,6 +57,7 @@ public class DonationController {
         return listDonations.listByCampaign(campaignId, PageParams.toQuery(page, size, sortBy, direction));
     }
 
+    @Operation(summary = "Top identified donors of a campaign")
     @GetMapping("/top-donors")
     public List<TopDonorResponse> topDonors(@PathVariable Long campaignId,
                                             @RequestParam(defaultValue = "10") int limit) {
