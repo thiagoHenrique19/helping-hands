@@ -25,6 +25,9 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/helpinghands
       DB_USER: helpinghands
       DB_PASSWORD: helpinghands
+      JWT_SECRET: ${JWT_SECRET:-compose-local-secret-change-me-0123456789abcdef}
+      APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
     ports:
       - "8080:8080"
     healthcheck:

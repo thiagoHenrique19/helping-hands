@@ -10,24 +10,20 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 
-@AutoConfigureMockMvc
 class DonationEnhancementsIntegrationTest extends AbstractPostgresIntegrationTest {
 
-    @Autowired private MockMvc mockMvc;
 
     private int campaignId;
 
     @BeforeEach
     void setUp() throws Exception {
-        String organization = mockMvc.perform(post("/api/organizations").contentType(MediaType.APPLICATION_JSON)
+        String organization = mockMvc.perform(post("/api/organizations").with(admin()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Org\",\"email\":\"" + UUID.randomUUID() + "@org.org\"}"))
                 .andReturn().getResponse().getContentAsString();
         int organizationId = JsonPath.read(organization, "$.id");
-        String campaign = mockMvc.perform(post("/api/organizations/" + organizationId + "/campaigns")
+        String campaign = mockMvc.perform(post("/api/organizations/" + organizationId + "/campaigns").with(admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Big goal\",\"goalAmount\":1000000}"))
                 .andReturn().getResponse().getContentAsString();

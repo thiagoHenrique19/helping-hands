@@ -13,6 +13,7 @@ import com.helpinghands.core.port.in.VerifyOrganizationUseCase;
 import com.helpinghands.core.port.in.dto.OrganizationRequest;
 import com.helpinghands.core.port.in.dto.OrganizationResponse;
 import com.helpinghands.core.port.out.OrganizationRepository;
+import com.helpinghands.core.port.out.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,20 +23,29 @@ public class OrganizationService implements RegisterOrganizationUseCase, UpdateO
 
     private final OrganizationRepository organizationRepository;
     private final OrganizationMapper organizationMapper;
+    private final UserRepository userRepository;
 
-    public OrganizationService(OrganizationRepository organizationRepository, OrganizationMapper organizationMapper) {
+    public OrganizationService(OrganizationRepository organizationRepository, OrganizationMapper organizationMapper,
+                               UserRepository userRepository) {
         this.organizationRepository = organizationRepository;
         this.organizationMapper = organizationMapper;
+        this.userRepository = userRepository;
     }
 
     @Override
     @Transactional
-    public OrganizationResponse register(OrganizationRequest request) {
+    public OrganizationResponse register(OrganizationRequest request, Long ownerUserId) {
         String email = Organization.normalizeEmail(request.email());
         if (organizationRepository.existsByEmail(email)) {
             throw new ConflictException("An organization with email " + email + " already exists");
         }
+        var owner = ownerUserId == null ? null : userRepository.findById(ownerUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", ownerUserId));
         var saved = organizationRepository.save(organizationMapper.toEntity(request));
+        if (owner != null) {
+            owner.assignOrganization(saved.getId());
+            userRepository.save(owner);
+        }
         return organizationMapper.toResponse(saved);
     }
 

@@ -1,17 +1,19 @@
 package com.helpinghands.infrastructure.web.error;
 
+import com.helpinghands.core.exception.AuthenticationFailedException;
 import com.helpinghands.core.exception.BusinessRuleException;
 import com.helpinghands.core.exception.ConflictException;
 import com.helpinghands.core.exception.InvalidRequestException;
 import com.helpinghands.core.exception.ResourceNotFoundException;
-import com.helpinghands.infrastructure.web.RequestIdFilter;
-import java.net.URI;
-import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -29,7 +31,6 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-    private static final String TYPE_PREFIX = "urn:helping-hands:problem:";
 
     public record FieldError(String field, String message) {
     }
@@ -72,6 +73,28 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Invalid value for parameter '" + exception.getName() + "'");
     }
 
+    @ExceptionHandler(AuthenticationFailedException.class)
+    public ProblemDetail handleLoginFailure(AuthenticationFailedException exception) {
+        return problem(HttpStatus.UNAUTHORIZED, "unauthorized", "Authentication failed", exception.getMessage());
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ProblemDetail handleAuthentication(AuthenticationException exception) {
+        return problem(HttpStatus.UNAUTHORIZED, "unauthorized", "Authentication required",
+                "Authentication is required to access this resource");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException exception) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
+            return problem(HttpStatus.UNAUTHORIZED, "unauthorized", "Authentication required",
+                    "Authentication is required to access this resource");
+        }
+        return problem(HttpStatus.FORBIDDEN, "forbidden", "Access denied",
+                "You are not allowed to perform this operation");
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpected(Exception exception) {
         log.error("Unexpected error", exception);
@@ -97,24 +120,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> createResponseEntity(Object body, HttpHeaders headers, HttpStatusCode statusCode,
                                                           WebRequest request) {
         if (body instanceof ProblemDetail problem) {
-            enrich(problem);
+            Problems.enrich(problem);
         }
         return super.createResponseEntity(body, headers, statusCode, request);
     }
 
     private ProblemDetail problem(HttpStatus status, String slug, String title, String detail) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
-        problem.setType(URI.create(TYPE_PREFIX + slug));
-        problem.setTitle(title);
-        enrich(problem);
-        return problem;
-    }
-
-    private void enrich(ProblemDetail problem) {
-        problem.setProperty("timestamp", Instant.now());
-        String requestId = MDC.get(RequestIdFilter.MDC_KEY);
-        if (requestId != null) {
-            problem.setProperty("requestId", requestId);
-        }
+        return Problems.create(status, slug, title, detail);
     }
 }

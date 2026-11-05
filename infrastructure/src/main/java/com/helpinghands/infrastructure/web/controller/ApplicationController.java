@@ -10,6 +10,7 @@ import com.helpinghands.core.port.in.dto.ApplicationRequest;
 import com.helpinghands.core.port.in.dto.ApplicationResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -39,6 +40,7 @@ public class ApplicationController {
 
     @Operation(summary = "List the applications of an opportunity")
     @GetMapping("/opportunities/{opportunityId}/applications")
+    @PreAuthorize("hasRole('ADMIN') or @access.ownsOpportunity(authentication, #opportunityId)")
     public PageResult<ApplicationResponse> list(@PathVariable Long opportunityId,
                                                 @RequestParam(required = false) ApplicationStatus status,
                                                 @RequestParam(defaultValue = "0") int page,
@@ -51,12 +53,14 @@ public class ApplicationController {
 
     @Operation(summary = "Approve a pending application (fills a slot)")
     @PostMapping("/applications/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN') or @access.ownsApplication(authentication, #id)")
     public ApplicationResponse approve(@PathVariable Long id) {
         return applicationService.approve(id);
     }
 
     @Operation(summary = "Reject a pending application")
     @PostMapping("/applications/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN') or @access.ownsApplication(authentication, #id)")
     public ApplicationResponse reject(@PathVariable Long id) {
         return applicationService.reject(id);
     }

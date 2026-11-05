@@ -12,6 +12,8 @@ import com.helpinghands.core.port.in.dto.OrganizationRequest;
 import com.helpinghands.core.port.in.dto.OrganizationResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,8 +47,13 @@ public class OrganizationController {
     @Operation(summary = "Register an organization")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public OrganizationResponse register(@Valid @RequestBody OrganizationRequest request) {
-        return registerOrganization.register(request);
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZATION')")
+    public OrganizationResponse register(@Valid @RequestBody OrganizationRequest request,
+                                         Authentication authentication) {
+        boolean organizationUser = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ORGANIZATION"));
+        Long ownerUserId = organizationUser ? Long.valueOf(authentication.getName()) : null;
+        return registerOrganization.register(request, ownerUserId);
     }
 
     @Operation(summary = "List organizations (paginated, optional name search)")
@@ -67,12 +74,14 @@ public class OrganizationController {
 
     @Operation(summary = "Update an organization")
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @access.ownsOrganization(authentication, #id)")
     public OrganizationResponse update(@PathVariable Long id, @Valid @RequestBody OrganizationRequest request) {
         return updateOrganization.update(id, request);
     }
 
     @Operation(summary = "Mark an organization as verified")
     @PostMapping("/{id}/verify")
+    @PreAuthorize("hasRole('ADMIN') or @access.ownsOrganization(authentication, #id)")
     public OrganizationResponse verify(@PathVariable Long id) {
         return verifyOrganization.verify(id);
     }

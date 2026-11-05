@@ -17,6 +17,9 @@ import com.helpinghands.core.port.in.ManageApplicationsUseCase;
 import com.helpinghands.core.port.in.dto.ApplicationResponse;
 import java.time.Instant;
 import java.util.List;
+import com.helpinghands.infrastructure.security.WebMvcSecurityTestConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -25,6 +28,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(ApplicationController.class)
+@Import(WebMvcSecurityTestConfig.class)
+@WithMockUser(roles = "ADMIN")
 class ApplicationControllerTest {
 
     private static final String BODY = """

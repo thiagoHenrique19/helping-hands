@@ -19,6 +19,9 @@ import com.helpinghands.core.port.in.dto.CampaignResponse;
 import com.helpinghands.core.port.in.dto.CampaignSearchCriteria;
 import java.math.BigDecimal;
 import java.util.List;
+import com.helpinghands.infrastructure.security.WebMvcSecurityTestConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -27,6 +30,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(CampaignController.class)
+@Import(WebMvcSecurityTestConfig.class)
+@WithMockUser(roles = "ADMIN")
 class CampaignControllerTest {
 
     private static final String BODY = """

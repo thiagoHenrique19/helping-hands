@@ -12,6 +12,7 @@ import com.helpinghands.core.port.in.dto.CampaignResponse;
 import com.helpinghands.core.port.in.dto.CampaignSearchCriteria;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,6 +37,7 @@ public class CampaignController {
     @Operation(summary = "Create a campaign for an organization")
     @PostMapping("/organizations/{organizationId}/campaigns")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN') or @access.ownsOrganization(authentication, #organizationId)")
     public CampaignResponse create(@PathVariable Long organizationId, @Valid @RequestBody CampaignRequest request) {
         return campaignService.create(organizationId, request);
     }
@@ -62,12 +64,14 @@ public class CampaignController {
 
     @Operation(summary = "Update an active campaign")
     @PutMapping("/campaigns/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @access.ownsCampaign(authentication, #id)")
     public CampaignResponse update(@PathVariable Long id, @Valid @RequestBody CampaignRequest request) {
         return campaignService.update(id, request);
     }
 
     @Operation(summary = "Cancel an active campaign")
     @PostMapping("/campaigns/{id}/cancel")
+    @PreAuthorize("hasRole('ADMIN') or @access.ownsCampaign(authentication, #id)")
     public CampaignResponse cancel(@PathVariable Long id) {
         return campaignService.cancel(id);
     }

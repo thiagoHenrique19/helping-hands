@@ -11,6 +11,7 @@ import com.helpinghands.core.port.in.dto.OpportunityResponse;
 import com.helpinghands.core.port.in.dto.OpportunitySearchCriteria;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +35,7 @@ public class OpportunityController {
     @Operation(summary = "Publish a volunteer opportunity")
     @PostMapping("/organizations/{organizationId}/opportunities")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN') or @access.ownsOrganization(authentication, #organizationId)")
     public OpportunityResponse create(@PathVariable Long organizationId,
                                       @Valid @RequestBody OpportunityRequest request) {
         return opportunityService.create(organizationId, request);
@@ -61,12 +63,14 @@ public class OpportunityController {
 
     @Operation(summary = "Close an opportunity")
     @PostMapping("/opportunities/{id}/close")
+    @PreAuthorize("hasRole('ADMIN') or @access.ownsOpportunity(authentication, #id)")
     public OpportunityResponse close(@PathVariable Long id) {
         return opportunityService.close(id);
     }
 
     @Operation(summary = "Cancel an opportunity")
     @PostMapping("/opportunities/{id}/cancel")
+    @PreAuthorize("hasRole('ADMIN') or @access.ownsOpportunity(authentication, #id)")
     public OpportunityResponse cancel(@PathVariable Long id) {
         return opportunityService.cancel(id);
     }
