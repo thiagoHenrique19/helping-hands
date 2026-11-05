@@ -38,7 +38,7 @@ class HelpingHandsFlowIntegrationTest extends AbstractPostgresIntegrationTest {
 
         mockMvc.perform(post("/api/campaigns/" + campaignId + "/donations").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"donorName":"Dave","donorEmail":"dave@mail.com","amount":100}
+                                {"donorName":"Dave","donorEmail":"dave@mail.com","amount":100,"paymentMethod":"PIX"}
                                 """))
                 .andExpect(status().isCreated());
 

@@ -90,7 +90,7 @@ class OrganizationManagementIntegrationTest extends AbstractPostgresIntegrationT
                 "{\"title\":\"Clean river\",\"goalAmount\":1000,\"category\":\"ENVIRONMENT\"}");
 
         mockMvc.perform(post("/api/campaigns/" + campaignId + "/donations").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"donorName\":\"Ann\",\"donorEmail\":\"ann@mail.com\",\"amount\":600}"))
+                        .content("{\"donorName\":\"Ann\",\"donorEmail\":\"ann@mail.com\",\"amount\":600,\"paymentMethod\":\"PIX\"}"))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(put("/api/campaigns/" + campaignId).contentType(MediaType.APPLICATION_JSON)
@@ -145,7 +145,7 @@ class OrganizationManagementIntegrationTest extends AbstractPostgresIntegrationT
         mockMvc.perform(get("/api/campaigns/" + campaignId))
                 .andExpect(jsonPath("$.status").value("EXPIRED"));
         mockMvc.perform(post("/api/campaigns/" + campaignId + "/donations").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"donorName\":\"Late\",\"donorEmail\":\"late@mail.com\",\"amount\":10}"))
+                        .content("{\"donorName\":\"Late\",\"donorEmail\":\"late@mail.com\",\"amount\":10,\"paymentMethod\":\"PIX\"}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.message").value("Campaign has expired"));
     }
