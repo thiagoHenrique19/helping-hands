@@ -65,7 +65,7 @@ class CampaignServiceTest {
     @Test
     void shouldUpdateCampaign() {
         Campaign campaign = Campaign.create(organization, "Old", "desc", BigDecimal.TEN);
-        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
+        when(campaignRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(campaign));
         when(campaignRepository.save(campaign)).thenReturn(campaign);
 
         CampaignResponse response = campaignService.update(1L,
@@ -77,7 +77,7 @@ class CampaignServiceTest {
 
     @Test
     void shouldFailUpdatingUnknownCampaign() {
-        when(campaignRepository.findById(7L)).thenReturn(Optional.empty());
+        when(campaignRepository.findByIdForUpdate(7L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> campaignService.update(7L,
                 new CampaignRequest("New", "desc", BigDecimal.TEN, null, null)))
@@ -87,7 +87,7 @@ class CampaignServiceTest {
     @Test
     void shouldCancelCampaign() {
         Campaign campaign = Campaign.create(organization, "Old", "desc", BigDecimal.TEN);
-        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
+        when(campaignRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(campaign));
         when(campaignRepository.save(campaign)).thenReturn(campaign);
 
         assertThat(campaignService.cancel(1L).status()).isEqualTo(CampaignStatus.CANCELLED);
