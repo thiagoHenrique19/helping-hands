@@ -5,6 +5,7 @@ import com.helpinghands.core.exception.ConflictException;
 import com.helpinghands.core.exception.InvalidRequestException;
 import com.helpinghands.core.exception.ResourceNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -33,6 +34,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException exception) {
         return build(HttpStatus.CONFLICT, "The request conflicts with existing data");
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiError> handleOptimisticLock(OptimisticLockingFailureException exception) {
+        return build(HttpStatus.CONFLICT, "The resource was modified concurrently, please retry");
     }
 
     @ExceptionHandler(InvalidRequestException.class)

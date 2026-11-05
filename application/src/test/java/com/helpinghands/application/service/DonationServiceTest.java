@@ -18,6 +18,8 @@ import com.helpinghands.core.exception.ResourceNotFoundException;
 import com.helpinghands.core.port.in.dto.DonationRequest;
 import com.helpinghands.core.port.in.dto.DonationResponse;
 import com.helpinghands.core.port.out.CampaignRepository;
+import com.helpinghands.core.event.CampaignCompleted;
+import com.helpinghands.core.port.out.DomainEventPublisher;
 import com.helpinghands.core.port.out.DonationRepository;
 import com.helpinghands.core.port.out.ReceiptCodeGenerator;
 import java.math.BigDecimal;
@@ -34,6 +36,7 @@ class DonationServiceTest {
     @Mock private CampaignRepository campaignRepository;
     @Mock private DonationRepository donationRepository;
     @Mock private ReceiptCodeGenerator receiptCodeGenerator;
+    @Mock private DomainEventPublisher eventPublisher;
 
     private DonationService donationService;
     private Campaign campaign;
@@ -41,7 +44,7 @@ class DonationServiceTest {
     @BeforeEach
     void setUp() {
         donationService = new DonationService(campaignRepository, donationRepository, receiptCodeGenerator,
-                new DonationMapper());
+                new DonationMapper(), eventPublisher);
         Organization organization = Organization.register("Green Future", "hi@green.org", "Reforestation");
         campaign = Campaign.create(organization, "Plant 1000 trees", "Atlantic forest", new BigDecimal("100"));
     }
@@ -77,6 +80,18 @@ class DonationServiceTest {
         donationService.donate(1L, request("Bob", "100"));
 
         assertThat(campaign.getStatus()).isEqualTo(CampaignStatus.COMPLETED);
+        verify(eventPublisher).publish(any(CampaignCompleted.class));
+    }
+
+    @Test
+    void shouldNotPublishEventWhileCampaignIsStillActive() {
+        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
+        when(receiptCodeGenerator.next()).thenReturn("DON-1");
+        when(donationRepository.save(any(Donation.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        donationService.donate(1L, request("Eve", "10"));
+
+        verify(eventPublisher, never()).publish(any());
     }
 
     @Test
