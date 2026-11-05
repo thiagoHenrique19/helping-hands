@@ -1,16 +1,22 @@
 package com.helpinghands.infrastructure.web.controller;
 
+import com.helpinghands.core.domain.CampaignCategory;
+import com.helpinghands.core.domain.CampaignStatus;
+import com.helpinghands.core.pagination.PageResult;
+import com.helpinghands.core.pagination.SortDirection;
+import com.helpinghands.core.port.in.ManageCampaignsUseCase;
 import com.helpinghands.core.port.in.dto.CampaignRequest;
 import com.helpinghands.core.port.in.dto.CampaignResponse;
-import com.helpinghands.core.port.in.ManageCampaignsUseCase;
+import com.helpinghands.core.port.in.dto.CampaignSearchCriteria;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -36,7 +42,25 @@ public class CampaignController {
     }
 
     @GetMapping("/campaigns")
-    public List<CampaignResponse> listActive() {
-        return campaignService.listActive();
+    public PageResult<CampaignResponse> search(@RequestParam(required = false) Long organizationId,
+                                               @RequestParam(required = false) CampaignStatus status,
+                                               @RequestParam(required = false) CampaignCategory category,
+                                               @RequestParam(required = false) String title,
+                                               @RequestParam(defaultValue = "0") int page,
+                                               @RequestParam(defaultValue = "20") int size,
+                                               @RequestParam(defaultValue = "id") String sortBy,
+                                               @RequestParam(defaultValue = "ASC") SortDirection direction) {
+        var criteria = new CampaignSearchCriteria(organizationId, status, category, title);
+        return campaignService.search(criteria, PageParams.toQuery(page, size, sortBy, direction));
+    }
+
+    @PutMapping("/campaigns/{id}")
+    public CampaignResponse update(@PathVariable Long id, @Valid @RequestBody CampaignRequest request) {
+        return campaignService.update(id, request);
+    }
+
+    @PostMapping("/campaigns/{id}/cancel")
+    public CampaignResponse cancel(@PathVariable Long id) {
+        return campaignService.cancel(id);
     }
 }

@@ -9,11 +9,13 @@ import org.springframework.stereotype.Component;
 public class OrganizationMapper {
 
     public Organization toEntity(OrganizationRequest request) {
-        return Organization.register(request.name(), request.email(), request.description());
+        return Organization.register(request.name(), request.email(), request.description(),
+                request.phone(), request.website());
     }
 
     public OrganizationResponse toResponse(Organization organization) {
-        return new OrganizationResponse(organization.getId(), organization.getName(),
-                organization.getEmail(), organization.getDescription());
+        return new OrganizationResponse(organization.getId(), organization.getName(), organization.getEmail(),
+                organization.getDescription(), organization.getPhone(), organization.getWebsite(),
+                organization.isVerified());
     }
 }

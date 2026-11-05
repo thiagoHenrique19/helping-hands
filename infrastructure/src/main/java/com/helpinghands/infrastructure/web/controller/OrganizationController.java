@@ -1,15 +1,22 @@
 package com.helpinghands.infrastructure.web.controller;
 
+import com.helpinghands.core.pagination.PageResult;
+import com.helpinghands.core.pagination.SortDirection;
+import com.helpinghands.core.port.in.ListOrganizationsUseCase;
+import com.helpinghands.core.port.in.RegisterOrganizationUseCase;
+import com.helpinghands.core.port.in.UpdateOrganizationUseCase;
+import com.helpinghands.core.port.in.VerifyOrganizationUseCase;
 import com.helpinghands.core.port.in.dto.OrganizationRequest;
 import com.helpinghands.core.port.in.dto.OrganizationResponse;
-import com.helpinghands.core.port.in.RegisterOrganizationUseCase;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,20 +24,48 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/organizations")
 public class OrganizationController {
 
-    private final RegisterOrganizationUseCase organizationService;
+    private final RegisterOrganizationUseCase registerOrganization;
+    private final UpdateOrganizationUseCase updateOrganization;
+    private final VerifyOrganizationUseCase verifyOrganization;
+    private final ListOrganizationsUseCase listOrganizations;
 
-    public OrganizationController(RegisterOrganizationUseCase organizationService) {
-        this.organizationService = organizationService;
+    public OrganizationController(RegisterOrganizationUseCase registerOrganization,
+                                  UpdateOrganizationUseCase updateOrganization,
+                                  VerifyOrganizationUseCase verifyOrganization,
+                                  ListOrganizationsUseCase listOrganizations) {
+        this.registerOrganization = registerOrganization;
+        this.updateOrganization = updateOrganization;
+        this.verifyOrganization = verifyOrganization;
+        this.listOrganizations = listOrganizations;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrganizationResponse register(@Valid @RequestBody OrganizationRequest request) {
-        return organizationService.register(request);
+        return registerOrganization.register(request);
+    }
+
+    @GetMapping
+    public PageResult<OrganizationResponse> list(@RequestParam(required = false) String name,
+                                                 @RequestParam(defaultValue = "0") int page,
+                                                 @RequestParam(defaultValue = "20") int size,
+                                                 @RequestParam(defaultValue = "id") String sortBy,
+                                                 @RequestParam(defaultValue = "ASC") SortDirection direction) {
+        return listOrganizations.search(name, PageParams.toQuery(page, size, sortBy, direction));
     }
 
     @GetMapping("/{id}")
     public OrganizationResponse findById(@PathVariable Long id) {
-        return organizationService.findById(id);
+        return registerOrganization.findById(id);
+    }
+
+    @PutMapping("/{id}")
+    public OrganizationResponse update(@PathVariable Long id, @Valid @RequestBody OrganizationRequest request) {
+        return updateOrganization.update(id, request);
+    }
+
+    @PostMapping("/{id}/verify")
+    public OrganizationResponse verify(@PathVariable Long id) {
+        return verifyOrganization.verify(id);
     }
 }

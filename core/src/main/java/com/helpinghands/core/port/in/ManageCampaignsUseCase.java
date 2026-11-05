@@ -1,8 +1,10 @@
 package com.helpinghands.core.port.in;
 
+import com.helpinghands.core.pagination.PageQuery;
+import com.helpinghands.core.pagination.PageResult;
 import com.helpinghands.core.port.in.dto.CampaignRequest;
 import com.helpinghands.core.port.in.dto.CampaignResponse;
-import java.util.List;
+import com.helpinghands.core.port.in.dto.CampaignSearchCriteria;
 
 public interface ManageCampaignsUseCase {
 
@@ -10,5 +12,9 @@ public interface ManageCampaignsUseCase {
 
     CampaignResponse findById(Long id);
 
-    List<CampaignResponse> listActive();
+    CampaignResponse update(Long id, CampaignRequest request);
+
+    CampaignResponse cancel(Long id);
+
+    PageResult<CampaignResponse> search(CampaignSearchCriteria criteria, PageQuery pageQuery);
 }

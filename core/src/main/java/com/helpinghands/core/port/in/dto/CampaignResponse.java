@@ -1,7 +1,9 @@
 package com.helpinghands.core.port.in.dto;
 
+import com.helpinghands.core.domain.CampaignCategory;
 import com.helpinghands.core.domain.CampaignStatus;
 import java.math.BigDecimal;
+import java.time.Instant;
 
 public record CampaignResponse(
         Long id,
@@ -11,5 +13,7 @@ public record CampaignResponse(
         BigDecimal goalAmount,
         BigDecimal raisedAmount,
         BigDecimal progressPercentage,
-        CampaignStatus status) {
+        CampaignStatus status,
+        CampaignCategory category,
+        Instant endsAt) {
 }
