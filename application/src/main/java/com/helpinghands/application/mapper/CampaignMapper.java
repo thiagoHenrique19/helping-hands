@@ -10,12 +10,13 @@ import org.springframework.stereotype.Component;
 public class CampaignMapper {
 
     public Campaign toEntity(Organization organization, CampaignRequest request) {
-        return Campaign.create(organization, request.title(), request.description(), request.goalAmount());
+        return Campaign.create(organization, request.title(), request.description(), request.goalAmount(),
+                request.endsAt(), request.category());
     }
 
     public CampaignResponse toResponse(Campaign campaign) {
         return new CampaignResponse(campaign.getId(), campaign.getOrganization().getId(), campaign.getTitle(),
                 campaign.getDescription(), campaign.getGoalAmount(), campaign.getRaisedAmount(),
-                campaign.progressPercentage(), campaign.getStatus());
+                campaign.progressPercentage(), campaign.getStatus(), campaign.getCategory(), campaign.getEndsAt());
     }
 }
