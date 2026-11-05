@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.helpinghands.core.exception.BusinessRuleException;
 import com.helpinghands.core.exception.ConflictException;
+import com.helpinghands.core.exception.IdempotencyKeyReusedException;
 import com.helpinghands.core.exception.InvalidRequestException;
 import com.helpinghands.core.exception.ResourceNotFoundException;
 import jakarta.validation.Valid;
@@ -59,6 +60,14 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/fail/lock-timeout"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("The resource was modified concurrently, please retry"));
+    }
+
+    @Test
+    void shouldMapIdempotencyKeyReuseToUnprocessableEntityWithOwnType() throws Exception {
+        mockMvc.perform(get("/fail/key-reuse"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.type").value("urn:helping-hands:problem:idempotency-key-reuse"))
+                .andExpect(jsonPath("$.title").value("Idempotency key reused"));
     }
 
     @Test
@@ -173,6 +182,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/fail/deadlock")
         void deadlock() {
             throw new DeadlockLoserDataAccessException("deadlock", null);
+        }
+
+        @GetMapping("/fail/key-reuse")
+        void keyReuse() {
+            throw new IdempotencyKeyReusedException();
         }
 
         @GetMapping("/fail/invalid")
