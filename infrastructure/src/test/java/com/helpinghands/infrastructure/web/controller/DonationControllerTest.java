@@ -48,7 +48,7 @@ class DonationControllerTest {
 
     @Test
     void shouldReturnCreatedWhenDonationIsValid() throws Exception {
-        when(donationService.donate(eq(1L), any())).thenReturn(new DonationResponse(10L, 1L, "Alice",
+        when(donationService.donate(eq(1L), any(), any())).thenReturn(new DonationResponse(10L, 1L, "Alice",
                 new BigDecimal("40"), Instant.now(), "DON-00000010", true, "Good luck", PaymentMethod.PIX));
 
         mockMvc.perform(post("/api/campaigns/1/donations")
@@ -81,7 +81,7 @@ class DonationControllerTest {
 
     @Test
     void shouldReturnUnprocessableEntityOnBusinessRuleViolation() throws Exception {
-        when(donationService.donate(eq(1L), any())).thenThrow(new BusinessRuleException("Campaign is not active"));
+        when(donationService.donate(eq(1L), any(), any())).thenThrow(new BusinessRuleException("Campaign is not active"));
 
         mockMvc.perform(post("/api/campaigns/1/donations")
                         .contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))

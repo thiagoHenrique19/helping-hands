@@ -108,7 +108,7 @@ class SecurityRulesTest {
 
     @Test
     void shouldAllowAnonymousDonationsApplicationsAndWithdrawals() throws Exception {
-        when(donations.donate(anyLong(), any())).thenReturn(new DonationResponse(1L, 1L, "A", BigDecimal.TEN,
+        when(donations.donate(anyLong(), any(), any())).thenReturn(new DonationResponse(1L, 1L, "A", BigDecimal.TEN,
                 Instant.now(), "DON-1", false, null, com.helpinghands.core.domain.PaymentMethod.PIX));
 
         mockMvc.perform(post("/api/campaigns/1/donations").contentType(MediaType.APPLICATION_JSON).content(DONATION_BODY))

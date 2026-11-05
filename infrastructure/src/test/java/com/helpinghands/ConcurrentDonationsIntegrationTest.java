@@ -38,7 +38,7 @@ class ConcurrentDonationsIntegrationTest extends AbstractPostgresIntegrationTest
 
     private Callable<Object> donation(Long campaignId, int amount) {
         return () -> donations.donate(campaignId, new DonationRequest("Donor " + amount,
-                "donor" + amount + "@mail.com", new BigDecimal(amount), false, null, PaymentMethod.PIX));
+                "donor" + amount + "@mail.com", new BigDecimal(amount), false, null, PaymentMethod.PIX), null);
     }
 
     @Test

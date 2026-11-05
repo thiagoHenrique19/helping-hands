@@ -44,7 +44,7 @@ public class DonationController {
     @PostMapping("/donations")
     @ResponseStatus(HttpStatus.CREATED)
     public DonationResponse donate(@PathVariable Long campaignId, @Valid @RequestBody DonationRequest request) {
-        return donationService.donate(campaignId, request);
+        return donationService.donate(campaignId, request, null);
     }
 
     @Operation(summary = "List the public donations of a campaign (anonymous donors are masked)")
